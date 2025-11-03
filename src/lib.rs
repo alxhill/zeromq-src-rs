@@ -184,7 +184,6 @@ impl Build {
             .define("ZMQ_BUILD_TESTS", "OFF")
             .include(vendor.join("include"))
             .include(vendor.join("src"))
-            .cpp_link_stdlib("stdc++")
             .cpp_link_stdlib_static(true);
 
         if target.contains("linux-gnu") {
