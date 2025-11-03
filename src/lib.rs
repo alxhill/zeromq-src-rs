@@ -183,26 +183,30 @@ impl Build {
             .cpp(true)
             .define("ZMQ_BUILD_TESTS", "OFF")
             .include(vendor.join("include"))
-            .include(vendor.join("src"))
-            .cpp_link_stdlib_static(true);
+            .include(vendor.join("src"));
 
-        if target.contains("linux-gnu") {
-            let compiler = build.get_compiler();
 
-            if let Ok(output) = std::process::Command::new(compiler.path())
-                .arg("-print-file-name=libstdc++.a")
-                .output()
-            {
-                if output.status.success() {
-                    let path = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-                    if !path.is_empty() {
-                        if let Some(parent) = Path::new(&path).parent() {
-                            println!("cargo:rustc-link-search=native={}", parent.display());
+        if env::var("ZMQRS_STATIC_LIBCXX").is_ok() {
+            build.cpp_link_stdlib_static(true);
+            if target.contains("linux-gnu") {
+                let compiler = build.get_compiler();
+
+                if let Ok(output) = std::process::Command::new(compiler.path())
+                    .arg("-print-file-name=libstdc++.a")
+                    .output()
+                {
+                    if output.status.success() {
+                        let path = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+                        if !path.is_empty() {
+                            if let Some(parent) = Path::new(&path).parent() {
+                                println!("cargo:rustc-link-search=native={}", parent.display());
+                            }
                         }
                     }
                 }
             }
         }
+
 
         add_cpp_sources(
             &mut build,
