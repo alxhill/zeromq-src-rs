@@ -178,11 +178,32 @@ impl Build {
         let vendor = Path::new(env!("CARGO_MANIFEST_DIR")).join("vendor");
 
         let mut build = cc::Build::new();
+        let target = env::var("TARGET").unwrap();
         build
             .cpp(true)
             .define("ZMQ_BUILD_TESTS", "OFF")
             .include(vendor.join("include"))
-            .include(vendor.join("src"));
+            .include(vendor.join("src"))
+            .cpp_link_stdlib("stdc++")
+            .cpp_link_stdlib_static(true);
+
+        if target.contains("linux-gnu") {
+            let compiler = build.get_compiler();
+
+            if let Ok(output) = std::process::Command::new(compiler.path())
+                .arg("-print-file-name=libstdc++.a")
+                .output()
+            {
+                if output.status.success() {
+                    let path = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+                    if !path.is_empty() {
+                        if let Some(parent) = Path::new(&path).parent() {
+                            println!("cargo:rustc-link-search=native={}", parent.display());
+                        }
+                    }
+                }
+            }
+        }
 
         add_cpp_sources(
             &mut build,
@@ -322,8 +343,6 @@ impl Build {
 
         build.define("ZMQ_HAVE_WS", "1");
 
-        let target = env::var("TARGET").unwrap();
-
         if let Some(libsodium) = &self.libsodium {
             build.define("ZMQ_USE_LIBSODIUM", "1");
             build.define("ZMQ_HAVE_CURVE", "1");
@@ -461,6 +480,7 @@ impl Build {
 
         println!("cargo:rustc-link-search=native={}", lib_dir.display());
         println!("cargo:rustc-link-lib=static=zmq");
+        // println!("cargo:rustc-link-arg=-static-libstdc++");
         println!("cargo:include={}", include_dir.display());
         println!("cargo:lib={}", lib_dir.display());
         println!("cargo:out={}", out_dir.display());
