@@ -185,7 +185,7 @@ impl Build {
             .include(vendor.join("include"))
             .include(vendor.join("src"));
 
-
+        println!("cargo:rerun-if-changed-env=ZMQRS_STATIC_LIBCXX");
         if env::var("ZMQRS_STATIC_LIBCXX").is_ok() {
             build.cpp_link_stdlib_static(true);
             if target.contains("linux-gnu") {
